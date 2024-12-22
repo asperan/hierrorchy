@@ -1,5 +1,5 @@
 use std::error::Error;
-use error_tree::{error_leaf, error_node};
+use hierrorchy::{error_leaf, error_node};
 
 error_node! {
     type MyErrorNode<ErrorChild1,> = "custom message"

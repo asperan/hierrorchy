@@ -1,20 +1,20 @@
-//! Error-Tree is a proc-macro library to simplify the creation of error trees.
+//! Hierrorchy is a proc-macro library to simplify the creation of error hierarchies (hence the
+//! name), in a tree-like structure.
 //!
-//! Error trees are a structure for representing stack traces.
 //! This crate is based on two concepts:
 //! - Leaves: base errors which can occur during the execution of a program
-//! ([`error_tree::error_leaf`](macro@error_leaf)).
+//! ([`hierrorchy::error_leaf`](macro@error_leaf)).
 //! - Nodes: errors which source can be a leaf or another node
-//! ([`error_tree::error_node`](macro@error_node)).
+//! ([`hierrorchy::error_node`](macro@error_node)).
 //!
 //! As nodes are "just" containers for other errors, they are `enum`s with a variant for each type
 //! of error they can contain; while leaves, which must be as open as possible, are `struct`s.
 //!
 //! # Example of an error leaf
 //! Error leaves are declared by adding an attribute to a struct definition (see
-//! [`error_tree::error_leaf`](macro@error_leaf) documentation for details on its configuration):
+//! [`hierrorchy::error_leaf`](macro@error_leaf) documentation for details on its configuration):
 //! ```
-//! use error_tree::error_leaf;
+//! use hierrorchy::error_leaf;
 //!
 //! #[error_leaf("My error")]
 //! struct MyError {}
@@ -35,13 +35,13 @@
 //! impl std::error::Error for MyError {}
 //! ```
 //!
-//! As you can see from the snippet above, [`error_tree::error_leaf`](macro@error_leaf) adds the attribute for
+//! As you can see from the snippet above, [`hierrorchy::error_leaf`](macro@error_leaf) adds the attribute for
 //! deriving the [`std::fmt::Debug`] implementation, as it is required by [`std::error::Error`].
 //!
 //! # Example of an error node
-//! Error nodes are declared by the function-like macro [`error_tree::error_node`](macro@error_node):
+//! Error nodes are declared by the function-like macro [`hierrorchy::error_node`](macro@error_node):
 //! ```
-//! use error_tree::{error_leaf,error_node};
+//! use hierrorchy::{error_leaf,error_node};
 //! use std::error::Error;
 //!
 //! #[error_leaf("My error")]
@@ -52,7 +52,7 @@
 //!
 //! This snippet is equivalent to:
 //! ```
-//! use error_tree::error_leaf;
+//! use hierrorchy::error_leaf;
 //! use std::error::Error;
 //!
 //! #[error_leaf("My error")]
@@ -84,14 +84,14 @@
 //! }
 //! ```
 //!
-//! As it can be seen in the snippet above, [`error_tree::error_node`](macro@error_node) also implements
+//! As it can be seen in the snippet above, [`hierrorchy::error_node`](macro@error_node) also implements
 //! [`std::convert::From`]s
 //! for each variant of the node, allowing to leverage the `?` operator in functions which return a
 //! [`std::result::Result`].
 //!
 //! # Complete example
 //! ```
-//! use error_tree::{error_leaf,error_node};
+//! use hierrorchy::{error_leaf,error_node};
 //! use rand::prelude::*;
 //! use std::error::Error;
 //! use std::process::exit;
@@ -169,7 +169,7 @@ impl Parse for MessageFormat {
 /// The plain string form cannot use struct fields, thus is better suited for errors which do not
 /// need a message which depends in the internal fields.
 /// ```
-/// use error_tree::error_leaf;
+/// use hierrorchy::error_leaf;
 ///
 /// // Format macro form
 /// #[error_leaf(format!("{} is wrong", self.myfield))]
@@ -379,7 +379,7 @@ fn error_node_from_impls(node_name: &Ident, variants: &[Ident]) -> TokenStream {
 ///
 /// # Examples:
 /// ```
-/// use error_tree::{error_leaf, error_node};
+/// use hierrorchy::{error_leaf, error_node};
 /// use std::error::Error;
 ///
 /// #[error_leaf(format!("error child 1"))]
