@@ -2,7 +2,7 @@
 name = "hierrorchy"
 version = "0.1.0"
 edition = "2021"
-license = "MPL v2.0"
+license = "MPL-2.0"
 description = "Proc macro library to simplify the definition of error hierarchies."
 repository = "https://github.com/asperan/hierrorchy"
 readme = "README.md"
