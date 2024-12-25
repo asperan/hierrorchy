@@ -94,12 +94,10 @@
 //! use hierrorchy::{error_leaf,error_node};
 //! use rand::prelude::*;
 //! use std::error::Error;
-//! use std::process::exit;
 //!
 //! fn main() {
 //!     if let Err(e) = entrypoint() {
 //!         eprintln!("{}", e);
-//!         exit(1);
 //!     }
 //! }
 //!
