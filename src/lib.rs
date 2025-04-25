@@ -3,9 +3,9 @@
 //!
 //! This crate is based on two concepts:
 //! - Leaves: base errors which can occur during the execution of a program
-//! ([`hierrorchy::error_leaf`](macro@error_leaf)).
+//!   ([`hierrorchy::error_leaf`](macro@error_leaf)).
 //! - Nodes: errors which source can be a leaf or another node
-//! ([`hierrorchy::error_node`](macro@error_node)).
+//!   ([`hierrorchy::error_node`](macro@error_node)).
 //!
 //! As nodes are "just" containers for other errors, they are `enum`s with a variant for each type
 //! of error they can contain; while leaves, which must be as open as possible, are `struct`s.
