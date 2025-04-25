@@ -137,7 +137,7 @@
 use proc_macro::TokenStream;
 use proc_macro2::{Group, TokenStream as TokenStream2};
 use quote::{format_ident, quote, ToTokens};
-use syn::{parse::Parse, parse_macro_input, Ident, ItemStruct, LitStr, Macro, Token};
+use syn::{parse::Parse, parse_macro_input, Ident, ItemStruct, LitStr, Macro, Path, Token};
 
 enum MessageFormat {
     Lit(LitStr),
@@ -225,7 +225,7 @@ pub fn error_leaf(attr: TokenStream, item: TokenStream) -> TokenStream {
 struct ErrorNode {
     is_pub: bool,
     node_name: Ident,
-    variants: Vec<Ident>,
+    variants: Vec<Path>,
     message_prefix: Option<LitStr>,
 }
 
@@ -239,7 +239,7 @@ impl Parse for ErrorNode {
         let _: Token![type] = input.parse()?;
         let node_name: Ident = input.parse()?;
 
-        let mut variants: Vec<Ident> = vec![];
+        let mut variants: Vec<Path> = vec![];
         let _open_angle_bracket: Token![<] = input.parse()?;
         let mut keep_parsing_variants = true;
         while keep_parsing_variants {
@@ -278,7 +278,7 @@ fn format_variant_name(number: usize) -> Ident {
     format_ident!("Variant{}", number)
 }
 
-fn error_node_enum(node_name: &Ident, is_pub: bool, variants: &[Ident]) -> TokenStream {
+fn error_node_enum(node_name: &Ident, is_pub: bool, variants: &[Path]) -> TokenStream {
     let mut token_buffer = TokenStream2::new();
     token_buffer.extend(quote! { #[derive(Debug)] });
     if is_pub {
@@ -327,7 +327,7 @@ fn error_node_display_impl(node_name: &Ident, message_prefix: Option<&LitStr>) -
     token_buffer.into()
 }
 
-fn error_node_error_impl(node_name: &Ident, variants: &[Ident]) -> TokenStream {
+fn error_node_error_impl(node_name: &Ident, variants: &[Path]) -> TokenStream {
     let mut token_buffer = TokenStream2::new();
     token_buffer.extend(quote! { impl std::error::Error for #node_name });
     let variant_matches = TokenStream2::from_iter(variants.iter().enumerate().map(|it| {
@@ -352,7 +352,7 @@ fn error_node_error_impl(node_name: &Ident, variants: &[Ident]) -> TokenStream {
     token_buffer.into()
 }
 
-fn error_node_from_impls(node_name: &Ident, variants: &[Ident]) -> TokenStream {
+fn error_node_from_impls(node_name: &Ident, variants: &[Path]) -> TokenStream {
     let mut token_buffer = TokenStream2::new();
     token_buffer.extend(variants.iter().enumerate().map(|it| {
         let variant_inner_type = it.1;
@@ -385,6 +385,22 @@ fn error_node_from_impls(node_name: &Ident, variants: &[Ident]) -> TokenStream {
 ///
 /// error_node! { type MyErrorNode<ErrorChild1> = "custom prefix" }
 /// ```
+///
+/// ## Variants with paths
+/// > Since version 0.2.0
+///
+/// error_node also accept variants in the form of paths, e.g. `std::io::Error`.
+///
+/// This allows to write:
+/// ```ignore
+/// error_node! { type MyErrorNode<std::io::Error> = "custom message" }
+/// ```
+/// rather than:
+/// ```ignore
+/// use std::io::Error as IoError;
+/// error_node! { type MyErrorNode<IoError> = "custom message" }
+/// ```
+///
 #[proc_macro]
 pub fn error_node(tokens: TokenStream) -> TokenStream {
     let input = parse_macro_input!(tokens as ErrorNode);
