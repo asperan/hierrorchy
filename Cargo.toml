@@ -1,6 +1,6 @@
 [package]
 name = "hierrorchy"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "MPL-2.0"
 description = "Proc macro library to simplify the definition of error hierarchies."
