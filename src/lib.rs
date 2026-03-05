@@ -184,29 +184,23 @@ pub fn error_leaf(attr: TokenStream, item: TokenStream) -> TokenStream {
     let msg_fmt = parse_macro_input!(attr as MessageFormat);
     let struct_def = parse_macro_input!(item as ItemStruct);
     let struct_name = &struct_def.ident;
+    let (impl_generics, ty_generics, where_clause) = &struct_def.generics.split_for_impl();
 
-    let display_impl = match msg_fmt {
-        MessageFormat::Format(f) => {
-            quote! {
-                impl std::fmt::Display for #struct_name {
-                    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(f, "{}", #f)
-                    }
-                }
-            }
-        }
-        MessageFormat::Lit(l) => {
-            quote! {
-                impl std::fmt::Display for #struct_name {
-                    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(f, "{}", #l)
-                    }
+    let display_impl = {
+        let format_arg = match msg_fmt {
+            MessageFormat::Format(f) => quote! { #f },
+            MessageFormat::Lit(l) => quote! { #l },
+        };
+        quote! {
+            impl #impl_generics std::fmt::Display for #struct_name #ty_generics #where_clause {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    write!(f, "{}", #format_arg)
                 }
             }
         }
     };
     let error_impl = quote! {
-        impl std::error::Error for #struct_name {}
+        impl #impl_generics std::error::Error for #struct_name #ty_generics #where_clause {}
     };
     let derive_debug = quote! {
         #[derive(Debug)]
