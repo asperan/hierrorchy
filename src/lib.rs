@@ -241,15 +241,5 @@ pub fn error_leaf(attr: TokenStream, item: TokenStream) -> TokenStream {
 pub fn error_node(tokens: TokenStream) -> TokenStream {
     let input = parse_macro_input!(tokens as ErrorNode);
 
-    let enum_declaration = input.error_node_enum();
-    let impl_display = input.error_node_display_impl();
-    let impl_error = input.error_node_error_impl();
-    let impl_froms = input.error_node_from_impls();
-
-    let mut token_buffer = TokenStream::new();
-    token_buffer.extend(enum_declaration);
-    token_buffer.extend(impl_display);
-    token_buffer.extend(impl_error);
-    token_buffer.extend(impl_froms);
-    token_buffer
+    input.to_token_stream()
 }

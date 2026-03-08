@@ -56,8 +56,21 @@ impl Parse for ErrorNode {
 }
 
 impl ErrorNode {
+    pub fn to_token_stream(&self) -> TokenStream {
+        let enum_declaration = self.error_node_enum();
+        let impl_display = self.error_node_display_impl();
+        let impl_error = self.error_node_error_impl();
+        let impl_froms = self.error_node_from_impls();
 
-    pub fn error_node_enum(&self) -> TokenStream {
+        let mut token_buffer = TokenStream::new();
+        token_buffer.extend(enum_declaration);
+        token_buffer.extend(impl_display);
+        token_buffer.extend(impl_error);
+        token_buffer.extend(impl_froms);
+        token_buffer
+    }
+
+    fn error_node_enum(&self) -> TokenStream {
         let mut token_buffer = TokenStream2::new();
         token_buffer.extend(quote! { #[derive(Debug)] });
         if self.is_pub {
@@ -81,7 +94,7 @@ impl ErrorNode {
         token_buffer.into()
     }
 
-    pub fn error_node_display_impl(&self) -> TokenStream {
+    fn error_node_display_impl(&self) -> TokenStream {
         let mut token_buffer = TokenStream2::new();
         let node_name = &self.node_name;
         token_buffer.extend(quote! { impl std::fmt::Display for #node_name });
@@ -107,7 +120,7 @@ impl ErrorNode {
         token_buffer.into()
     }
 
-    pub fn error_node_error_impl(&self) -> TokenStream {
+    fn error_node_error_impl(&self) -> TokenStream {
         let mut token_buffer = TokenStream2::new();
         let node_name = &self.node_name;
         token_buffer.extend(quote! { impl std::error::Error for #node_name });
@@ -133,7 +146,7 @@ impl ErrorNode {
         token_buffer.into()
     }
 
-    pub fn error_node_from_impls(&self) -> TokenStream {
+    fn error_node_from_impls(&self) -> TokenStream {
         let mut token_buffer = TokenStream2::new();
         let node_name = &self.node_name;
         token_buffer.extend(self.variants.iter().enumerate().map(|it| {
