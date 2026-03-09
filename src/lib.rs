@@ -16,7 +16,7 @@
 //! ```
 //! use hierrorchy::error_leaf;
 //!
-//! #[error_leaf("My error")]
+//! #[error_leaf(message = format!("My error"))]
 //! struct MyError {}
 //! ```
 //!
@@ -28,7 +28,7 @@
 //!
 //! impl std::fmt::Display for MyError {
 //!     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//!         write!(f, "{}", "My error")
+//!         write!(f, "{}", format!("My error"))
 //!     }
 //! }
 //!
@@ -38,13 +38,30 @@
 //! As you can see from the snippet above, [`hierrorchy::error_leaf`](macro@error_leaf) adds the attribute for
 //! deriving the [`std::fmt::Debug`] implementation, as it is required by [`std::error::Error`].
 //!
+//! If an error_leaf must contain fields that do not implement [`std::fmt::Debug`], the derive
+//! macro can be turned off with `derive_debug = false` in the error_leaf arguments:
+//! ```
+//! use std::fmt::Debug;
+//!
+//! use hierrorchy::error_leaf;
+//!
+//! #[error_leaf(message = format!("My error"), derive_debug = false)]
+//! struct MyError {}
+//!
+//! impl Debug for MyError {
+//!     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//!         write!(f, "MyError")
+//!     }
+//! }
+//! ```
+//!
 //! # Example of an error node
 //! Error nodes are declared by the function-like macro [`hierrorchy::error_node`](macro@error_node):
 //! ```
 //! use hierrorchy::{error_leaf,error_node};
 //! use std::error::Error;
 //!
-//! #[error_leaf("My error")]
+//! #[error_leaf(message = format!("My error"))]
 //! struct MyError {}
 //!
 //! error_node! { type MyErrorNode<MyError> = "my error node" }
@@ -55,7 +72,7 @@
 //! use hierrorchy::error_leaf;
 //! use std::error::Error;
 //!
-//! #[error_leaf("My error")]
+//! #[error_leaf(message = format!("My error"))]
 //! struct MyError {}
 //!
 //! #[derive(Debug)]
@@ -124,84 +141,61 @@
 //!     }
 //! }
 //!
-//! #[error_leaf("first check failed")]
+//! #[error_leaf(message = format!("first check failed"))]
 //! struct MyFirstErrorLeaf {}
 //!
-//! #[error_leaf(format!("second check failed: value is {}", self.value))]
+//! #[error_leaf(message = format!("second check failed: value is {}", self.value))]
 //! struct MySecondErrorLeaf {
 //!     value: i32,
 //! }
 //!
 //! error_node! { type MyErrorNode<MyFirstErrorLeaf, MySecondErrorLeaf> = "error node" }
 //! ```
+#![deny(missing_docs)]
 mod error_leaf;
 mod error_node;
 
 use proc_macro::TokenStream;
-use quote::quote;
 use syn::{parse_macro_input, ItemStruct};
 
-use crate::{error_leaf::MessageFormat, error_node::ErrorNode};
+use crate::{
+    error_leaf::{ErrorLeaf, ErrorLeafConfig},
+    error_node::ErrorNode,
+};
 
 /// Attribute to mark a Struct definition as an error leaf.
 /// Implementation of `Display` and `Error` is created by the macro.
 ///
 /// # Examples
-/// The message can be written in 2 forms: plain string or format macro.
+/// The message must be written as a format macro call.
 ///
-/// The format macro form allows to use the struct fields and methods to enhance the error message.
-/// In this form, use `self` to access them.
-///
-/// The plain string form cannot use struct fields, thus is better suited for errors which do not
-/// need a message which depends in the internal fields.
+/// The scope of the format macro is inside the struct, so internal fields can be accessed with
+/// `self`.
 /// ```
 /// use hierrorchy::error_leaf;
 ///
 /// // Format macro form
-/// #[error_leaf(format!("{} is wrong", self.myfield))]
+/// #[error_leaf(message = format!("{} is wrong", self.myfield))]
 /// struct MyError {
 ///    myfield: String,
 /// }
-///
-/// // Plain string form
-/// #[error_leaf("simple error")]
-/// struct SimpleError {}
 /// ```
+///
+/// # Arguments
+/// This attribute macro can be configured with keywords, with the structure `<keyword> = <value>`,
+/// separated by commas. Trailing commas are accepted.
+///
+/// The available keywords are reported in the table below.
+///
+/// | keyword | Required? | Description |
+/// | --- | --- | --- |
+/// | `message` | Y | The message format to use in the [std::fmt::Display] implementation. |
+/// | `derive_debug` | N | Whether to add the derive macro for [std::fmt::Debug] trait. Defaults to `true`. |
 #[proc_macro_attribute]
 pub fn error_leaf(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let msg_fmt = parse_macro_input!(attr as MessageFormat);
+    let config = parse_macro_input!(attr as ErrorLeafConfig);
     let struct_def = parse_macro_input!(item as ItemStruct);
-    let struct_name = &struct_def.ident;
-    let (impl_generics, ty_generics, where_clause) = &struct_def.generics.split_for_impl();
-
-    let display_impl = {
-        let format_arg = match msg_fmt {
-            MessageFormat::Format(f) => quote! { #f },
-            MessageFormat::Lit(l) => quote! { #l },
-        };
-        quote! {
-            impl #impl_generics std::fmt::Display for #struct_name #ty_generics #where_clause {
-                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                    write!(f, "{}", #format_arg)
-                }
-            }
-        }
-    };
-    let error_impl = quote! {
-        impl #impl_generics std::error::Error for #struct_name #ty_generics #where_clause {}
-    };
-    let derive_debug = quote! {
-        #[derive(Debug)]
-    };
-
-    let result_stream = quote! {
-        #derive_debug
-        #struct_def
-        #display_impl
-        #error_impl
-    };
-
-    result_stream.into()
+    ErrorLeaf::new(config, struct_def).to_token_stream()
 }
 
 /// Function-like proc macro to construct error nodes.
@@ -216,7 +210,7 @@ pub fn error_leaf(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// use hierrorchy::{error_leaf, error_node};
 /// use std::error::Error;
 ///
-/// #[error_leaf(format!("error child 1"))]
+/// #[error_leaf(message = format!("error child 1"))]
 /// pub struct ErrorChild1 {}
 ///
 /// error_node! { type MyErrorNode<ErrorChild1> = "custom prefix" }
