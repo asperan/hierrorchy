@@ -18,12 +18,12 @@ Error leaves are declared by adding an attribute to a struct definition (see
 ```
 use hierrorchy::error_leaf;
 
-#[error_leaf("My error")]
+#[error_leaf(message = format!("My error"))]
 struct MyError {}
 ```
 
 The attribute adds the implementation of [`std::fmt::Display`] and [`std::error::Error`], thus
-writing the snippet of code above is equivalent to wrinting the following code:
+writing the snippet of code above is equivalent to writing the following code:
 ```
 #[derive(Debug)]
 struct MyError{}
@@ -40,13 +40,30 @@ impl std::error::Error for MyError {}
 As you can see from the snippet above, [`hierrorchy::error_leaf`](macro@error_leaf) adds the attribute for
 deriving the [`std::fmt::Debug`] implementation, as it is required by [`std::error::Error`].
 
+If an error_leaf must contain fields that do not implement [`std::fmt::Debug`], the derive
+macro can be turned off with `derive_debug = false` in the error_leaf arguments:
+```
+use std::fmt::Debug;
+
+use hierrorchy::error_leaf;
+
+#[error_leaf(message = format!("My error"), derive_debug = false)]
+struct MyError {}
+
+impl Debug for MyError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "MyError")
+    }
+}
+```
+
 ### Example of an error node
 Error nodes are declared by the function-like macro [`hierrorchy::error_node`](macro@error_node):
 ```
 use hierrorchy::{error_leaf,error_node};
 use std::error::Error;
 
-#[error_leaf("My error")]
+#[error_leaf(message = format!("My error"))]
 struct MyError {}
 
 error_node! { type MyErrorNode<MyError> = "my error node" }
@@ -57,7 +74,7 @@ This snippet is equivalent to:
 use hierrorchy::error_leaf;
 use std::error::Error;
 
-#[error_leaf("My error")]
+#[error_leaf(message = format!("My error"))]
 struct MyError {}
 
 #[derive(Debug)]
@@ -128,10 +145,10 @@ fn check_value(value: i32) -> Result<(), MySecondErrorLeaf> {
     }
 }
 
-#[error_leaf("first check failed")]
+#[error_leaf(message = format!("first check failed"))]
 struct MyFirstErrorLeaf {}
 
-#[error_leaf(format!("second check failed: value is {}", self.value))]
+#[error_leaf(message = format!("second check failed: value is {}", self.value))]
 struct MySecondErrorLeaf {
     value: i32,
 }
