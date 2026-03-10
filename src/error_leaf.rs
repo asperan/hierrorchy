@@ -3,7 +3,7 @@ use std::{error::Error, fmt::Display, str::FromStr};
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
-use syn::{parse::Parse, Error as SynError, Ident, ItemStruct, LitBool, Macro, Token};
+use syn::{Error as SynError, Ident, ItemStruct, LitBool, Macro, Token, parse::Parse, spanned::Spanned};
 
 pub struct ErrorLeaf {
     config: ErrorLeafConfig,
@@ -74,7 +74,9 @@ impl Parse for ErrorLeafConfig {
                 }
                 ErrorLeafConfigKeyword::Message => {
                     let value: Macro = input.parse()?;
-                    // TODO: check that the macro is format, else return an error
+                    if value.path.segments.last().expect("A Macro call must have a last path segment").ident != "format" {
+                        return Err(SynError::new(value.span(), format!("The only accepted macro for keyword {} is 'format'", ErrorLeafConfigKeyword::Message)));
+                    }
                     macro_config_builder.set_message(value);
                 }
             }

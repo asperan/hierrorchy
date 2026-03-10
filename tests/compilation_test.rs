@@ -24,6 +24,9 @@ impl<T> Debug for GenericErrorWithoutDebug<T> {
     }
 }
 
+#[error_leaf(message = println!(""))]
+struct MyError {}
+
 error_node! {
     type PathErrorNode<io::Error, ErrorChild1, GenericError<i32>> = "path error"
 }
